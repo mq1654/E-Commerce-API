@@ -36,3 +36,5 @@
 # Ignore custom rule files
 /rule.md
 /requirement.md
+/daily-context.md
+/product-api-schema.md
