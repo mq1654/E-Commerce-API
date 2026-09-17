@@ -1,5 +1,6 @@
 class Api::V1::ProductsController < ApplicationController
    skip_before_action :verify_authenticity_token
+   before_action :set_product, only: [ :show, :update, :destroy ]
    def create
       ActiveRecord::Base.transaction do
       product = Product.new(product_params)
@@ -58,11 +59,35 @@ class Api::V1::ProductsController < ApplicationController
    end
 
    def show
-      product = Product.find(params[:id])
-      render json: product, status: :ok
+      render json: @product.as_json(
+         include: {
+            options: {
+               include: :option_values
+            },
+            variants: {}
+         }
+      ), status: :ok
+   end
+
+   def update
+      if @product.update(product_params)
+         render json: @product, status: :ok
+      else
+         render json: @product.errors, status: :unprocessable_entity
+      end
+   end
+
+   def destroy
+      @product.destroy
+      head :no_content
    end
 
    private
+   def set_product
+      @product = Product.includes(options: :option_values, variants: {}).find_by(id: params[:id])
+      render json: { error: "Product not found" }, status: :not_found unless @product
+   end
+
    def product_params
       params.require(:product).permit(
          :name,
