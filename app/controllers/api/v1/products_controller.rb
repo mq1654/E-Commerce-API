@@ -55,7 +55,28 @@ class Api::V1::ProductsController < ApplicationController
 
    def index
       products = Product.all
-      render json: products, status: :ok
+      if params[:search].present?
+         products = products.where("name ILIKE ?", "%#{params[:search]}%")
+      end
+      if params[:category_id].present?
+         products = products.where(category_id: params[:category_id])
+      end
+      page = params[:page].to_i > 0 ? params[:page].to_i : 1
+      per_page = params[:per_page].to_i > 0 ? params[:per_page].to_i : 10
+      per_page = 50 if per_page > 50
+      offset = (page - 1) * per_page
+      total = products.count
+      total_pages = (total.to_f / per_page).ceil
+      products = products.limit(per_page).offset(offset)
+      render json: {
+         data: products,
+         meta: {
+            page: page,
+            per_page: per_page,
+            total: total,
+            total_pages: total_pages
+         }
+}, status: :ok
    end
 
    def show
