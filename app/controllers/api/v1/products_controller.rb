@@ -61,9 +61,23 @@ class Api::V1::ProductsController < ApplicationController
       if params[:category_id].present?
          products = products.where(category_id: params[:category_id])
       end
+
+      if params[:min_price].present?
+         products = products.where("base_price >= ?", params[:min_price])
+      end
+      if params[:max_price].present?
+         products = products.where("base_price <= ?", params[:max_price])
+      end
+
+      allowed_sorts = [ "name", "base_price", "created_at" ]
+      sort_column = allowed_sorts.include?(params[:sort]) ? params[:sort] : "created_at"
+      order_direction = (params[:order] == "asc") ? "asc" : "desc"
+      products = products.order(sort_column => order_direction)
+
       page = params[:page].to_i > 0 ? params[:page].to_i : 1
       per_page = params[:per_page].to_i > 0 ? params[:per_page].to_i : 10
       per_page = 50 if per_page > 50
+
       offset = (page - 1) * per_page
       total = products.count
       total_pages = (total.to_f / per_page).ceil
@@ -76,7 +90,7 @@ class Api::V1::ProductsController < ApplicationController
             total: total,
             total_pages: total_pages
          }
-}, status: :ok
+      }, status: :ok
    end
 
    def show
