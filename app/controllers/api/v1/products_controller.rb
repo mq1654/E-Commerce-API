@@ -54,7 +54,7 @@ class Api::V1::ProductsController < ApplicationController
    end
 
    def index
-      products = Product.all
+      products = Product.includes(:variants)
       if params[:search].present?
          products = products.where("name ILIKE ?", "%#{params[:search]}%")
       end
@@ -82,8 +82,24 @@ class Api::V1::ProductsController < ApplicationController
       total = products.count
       total_pages = (total.to_f / per_page).ceil
       products = products.limit(per_page).offset(offset)
+
+      product_summaries = products.map do |product|
+      prices = product.variants.map(&:price)
+      {
+         id: product.id,
+         name: product.name,
+         description: product.description,
+         base_price: product.base_price,
+         image_url: product.image_url,
+         variant_count: product.variants.size,
+         price_min: prices.min,
+         price_max: prices.max,
+         created_at: product.created_at,
+         updated_at: product.updated_at
+      }
+      end
       render json: {
-         data: products,
+         data: product_summaries,
          meta: {
             page: page,
             per_page: per_page,
