@@ -136,7 +136,7 @@ class Api::V1::ProductsController < ApplicationController
    private
    def set_product
       @product = Product.includes(options: :option_values, variants: {}).find_by(id: params[:id])
-      render json: { error: "Product not found" }, status: :not_found unless @product
+      render json: { error: { code: "product_not_found", message: "Product not found" } }, status: :not_found unless @product
    end
 
    def product_params
