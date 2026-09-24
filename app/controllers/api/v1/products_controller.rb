@@ -11,11 +11,11 @@ class Api::V1::ProductsController < ApplicationController
             variant_ids = []
             option_ids = []
             option_value_ids = []
-            # opt
+            # option
             params[:options].each do |option|
                values = []
-               variant_count *= option[:option_values].size
                opt = Option.create(name: option[:name], product_id: product.id)
+               variant_count *= option[:option_values].size
                option_ids.push(opt.id)
                option[:option_values].each do |opt_val|
                option_value = OptionValue.create(value: opt_val, option_id: opt.id)
@@ -110,14 +110,48 @@ class Api::V1::ProductsController < ApplicationController
    end
 
    def show
-      render json: @product.as_json(
-         include: {
-            options: {
-               include: :option_values
-            },
-            variants: {}
+      options = @product.options.map do |option|
+         {
+            id: option.id,
+            name: option.name,
+            values: option.option_values.map do |option_value|
+               {
+                  id: option_value.id,
+                  value: option_value.value
+               }
+            end
          }
-      ), status: :ok
+      end
+      variants = @product.variants.map do |variant|
+         {
+            id: variant.id,
+            sku: variant.sku,
+            price: variant.price,
+            stock: variant.stock,
+            option_values: variant.option_values.map do |opt_val|
+               {
+                  option_id: opt_val.option.id,
+                  option: opt_val.option.name,
+                  value_id: opt_val.id,
+                  value: opt_val.value
+               }
+            end
+         }
+      end
+      render json: {
+         data: {
+            id: @product.id,
+            name: @product.name,
+            description: @product.description,
+            brand: @product.brand,
+            base_price: @product.base_price,
+            image_url: @product.image_url,
+            created_at: @product.created_at,
+            updated_at: @product.updated_at,
+            options: options,
+            variants: variants
+         }
+       }, status: :ok
    end
 
    def update
@@ -135,7 +169,7 @@ class Api::V1::ProductsController < ApplicationController
 
    private
    def set_product
-      @product = Product.includes(options: :option_values, variants: {}).find_by(id: params[:id])
+      @product = Product.includes(options: :option_values, variants: { option_values: :option }).find_by(id: params[:id])
       render json: { error: { code: "product_not_found", message: "Product not found" } }, status: :not_found unless @product
    end
 
